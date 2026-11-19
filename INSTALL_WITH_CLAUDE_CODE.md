@@ -9,12 +9,31 @@ realme earbuds that use the HeyMelody app) without a phone:
 - Find my earbuds, game mode, in-ear detection, dual connection
 - small card on the desktop (behind apps) that expands when clicked; starts at sign-in
 
+## Get the package
+
+Download the release zip from GitHub:
+**<https://github.com/akashlr92/NordBudsWidget/releases/latest>** → `NordBudsWidget-v2.0.zip`.
+
+If you only have this guide, ask the user before downloading. Then download and unzip the release
+into a new, empty folder (PowerShell):
+
+```powershell
+$dir = Join-Path $env:USERPROFILE 'Downloads\NordBudsWidget-v2.0'
+New-Item -ItemType Directory -Force $dir | Out-Null
+Invoke-WebRequest 'https://github.com/akashlr92/NordBudsWidget/releases/download/v2.0/NordBudsWidget-v2.0.zip' -OutFile "$dir\NordBudsWidget-v2.0.zip"
+Expand-Archive "$dir\NordBudsWidget-v2.0.zip" $dir -Force
+Set-Location "$dir\NordBudsWidget"
+```
+
+Work from the unzipped `NordBudsWidget` folder for the steps below. A `git clone` of the
+repository works too.
+
 ## Instructions for Claude Code
 
 You are installing this widget for the user on **this** Windows PC. Work through the steps in
 order, report each result, and stop and ask the user if a step fails.
 
-1. **Check the package.** This folder must contain: `install.ps1`, `uninstall.ps1`,
+1. **Check the package.** The unzipped `NordBudsWidget` folder must contain: `install.ps1`, `uninstall.ps1`,
    `nordbuds_widget.pyw`, `nordbuds_ui.html`, `bt_audio.py`, `desk_colors.py`, `nordbuds.ico`,
    `nordbuds.png`. Read `install.ps1` before running it. It only touches the current user's
    profile: `%USERPROFILE%\NordBudsWidget`, `%APPDATA%\NordBudsWidget` and three shortcuts.

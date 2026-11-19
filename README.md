@@ -32,7 +32,7 @@ Other OnePlus, OPPO and realme earbuds that use HeyMelody may work too, but only
 
 ## Install
 
-1. Get the code: **Code → Download ZIP** and unzip it, or:
+1. Download **NordBudsWidget-v2.0.zip** from the [latest release](https://github.com/akashlr92/NordBudsWidget/releases/latest), unzip it and open the `NordBudsWidget` folder. Or clone the repo:
 
    ```powershell
    git clone https://github.com/akashlr92/NordBudsWidget.git
