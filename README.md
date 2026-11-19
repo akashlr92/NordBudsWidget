@@ -107,6 +107,10 @@ The log is at `%APPDATA%\NordBudsWidget\widget.log`.
 The protocol is based on community reverse engineering of OPPO/OnePlus earbuds, including the
 [Gadgetbridge](https://codeberg.org/Freeyourgadget/Gadgetbridge) project.
 
+## License
+
+[MIT](LICENSE) © 2026 Akash L R
+
 ## Disclaimer
 
 This is an unofficial hobby project. It isn't affiliated with or endorsed by OnePlus or OPPO.
