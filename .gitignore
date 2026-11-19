@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Release packages (zips and unzipped copies of the code); use git tags for versions
+releases/
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

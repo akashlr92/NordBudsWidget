@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Nord Buds 4</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+  :root {
+    --bg: #2b323c; --bg2: #262c35; --card: #343c48; --card-hi: #3d4653; --line: #4a5463;
+    --fg: #f3f5f8; --muted: #aab3c0; --faint: #7d8796;
+    --accent: #eb0028; --accent-soft: rgba(235, 0, 40, .14); --accent-fg: #fff;
+    --ok: #31c48d; --warn: #f5a524; --low: #f04848;
+    --radius: 18px; --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 24px rgba(0,0,0,.25);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  /* The window is clipped to a rounded shape; the few pixels outside the CSS corner curve are
+     painted with the wallpaper colour sampled behind each corner, so corners look smooth. */
+  :root { --c-tl: var(--bg); --c-tr: var(--bg); --c-bl: var(--bg); --c-br: var(--bg);
+          --ring: rgba(255,255,255,.08); --ring-accent: rgba(235,0,40,.55); }
+  html {
+    height: 100%; color: var(--fg); overflow: hidden;
+    background:
+      linear-gradient(var(--c-tl), var(--c-tl)) 0 0 / 50% 50% no-repeat,
+      linear-gradient(var(--c-tr), var(--c-tr)) 100% 0 / 50% 50% no-repeat,
+      linear-gradient(var(--c-bl), var(--c-bl)) 0 100% / 50% 50% no-repeat,
+      linear-gradient(var(--c-br), var(--c-br)) 100% 100% / 50% 50% no-repeat;
+  }
+  body {
+    height: 100vh; overflow-y: auto; overflow-x: hidden; border-radius: 18px;
+    background: radial-gradient(120% 60% at 0% 0%, var(--accent-soft), transparent 60%), var(--bg);
+    box-shadow: inset 0 0 0 1px var(--ring);
+    font: 13px/1.4 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; user-select: none;
+  }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; }
+  body:hover::-webkit-scrollbar-thumb { background: var(--line); }
+  ::-webkit-scrollbar-track { margin: 16px 0; }
+  .wrap { padding: 14px 14px 22px; display: grid; gap: 12px; max-width: 520px; margin: 0 auto; }
+
+  /* header */
+  header { display: flex; align-items: center; gap: 10px; padding: 2px 4px 0; }
+  .brand { flex: 1; min-width: 0; }
+  .brand h1 { font: 600 17px/1.2 "Segoe UI Variable Display", "Segoe UI", sans-serif; letter-spacing: -.01em; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 11.5px; color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+  .pill.on .dot { background: var(--ok); box-shadow: 0 0 0 3px rgba(49,196,141,.18); }
+  .pill.busy .dot { background: var(--warn); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .icon-btn {
+    width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--line); background: var(--card);
+    color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: .15s;
+  }
+  .icon-btn:hover { color: var(--fg); background: var(--card-hi); }
+  .icon-btn.active { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .spin svg { animation: spin .8s linear; } @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* cards */
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+  .card h2 { font: 600 11px/1 "Segoe UI", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .grow { flex: 1; }
+  .sub { color: var(--muted); font-size: 12px; }
+
+  /* hero / battery */
+  .hero { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 16px 10px 14px; }
+  .bat { display: grid; justify-items: center; gap: 6px; }
+  .ring { position: relative; width: 74px; height: 74px; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .track { stroke: var(--line); }
+  .ring .val { stroke: var(--ok); stroke-linecap: round; transition: stroke-dashoffset .6s ease, stroke .3s; }
+  .ring .glyph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+  .ring .glyph svg { width: 26px; height: 26px; transform: none; }
+  .bat b { font: 600 16px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; }
+  .bat b small { font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 1px; }
+  .bat span { font-size: 11.5px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+  .bolt { color: var(--warn); width: 11px; height: 11px; display: none; }
+  .bat.chg .bolt { display: inline-block; }
+  .bat.na b { color: var(--faint); }
+
+  /* segmented */
+  .seg { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--bg2); border-radius: 14px; padding: 4px; border: 1px solid var(--line); }
+  .seg .thumb { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 11px; background: var(--accent); box-shadow: 0 6px 16px rgba(235,0,40,.28); transition: transform .28s cubic-bezier(.3,.7,.2,1), opacity .2s; opacity: 0; }
+  .seg button { position: relative; z-index: 1; border: 0; background: none; color: var(--muted); padding: 10px 4px 9px; border-radius: 11px; cursor: pointer; display: grid; justify-items: center; gap: 5px; font: 500 12px "Segoe UI", sans-serif; transition: color .2s; }
+  .seg button svg { width: 20px; height: 20px; }
+  .seg button:hover { color: var(--fg); }
+  .seg button.on { color: var(--accent-fg); }
+  .mode-note { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 17px; }
+
+  /* chips */
+  .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .chip { border: 1px solid var(--line); background: var(--bg2); color: var(--fg); border-radius: 12px; padding: 9px 4px; font: 500 12px "Segoe UI", sans-serif; cursor: pointer; transition: .15s; }
+  .chip:hover { border-color: var(--faint); }
+  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--fg); font-weight: 600; }
+  .chip:disabled { opacity: .4; cursor: default; }
+
+  /* rows, toggles */
+  .row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); }
+  .row:first-of-type { border-top: 0; }
+  .row .txt { flex: 1; min-width: 0; }
+  .row .txt div { font-weight: 500; }
+  .row .txt p { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .switch { position: relative; width: 40px; height: 22px; flex: none; cursor: pointer; }
+  .switch input { display: none; }
+  .switch i { position: absolute; inset: 0; border-radius: 22px; background: var(--line); transition: .2s; }
+  .switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: .2s; }
+  .switch input:checked + i { background: var(--accent); }
+  .switch input:checked + i::after { transform: translateX(18px); }
+
+  /* range */
+  input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; width: 100%; height: 22px; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--accent) var(--p, 50%), var(--line) var(--p, 50%)); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.35), 0 0 0 4px var(--accent-soft); }
+  .bass { margin-top: 14px; }
+  .bass-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .bass-head b { font-weight: 500; } .bass-head span { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .scale { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--faint); margin-top: 1px; }
+
+  /* custom eq */
+  .eq { margin-top: 14px; padding: 12px 8px 8px; background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; display: none; }
+  .eq.show { display: block; }
+  .eq-head { display: flex; justify-content: space-between; align-items: center; padding: 0 6px 8px; }
+  .eq-head b { font-weight: 500; }
+  .link { border: 0; background: none; color: var(--accent); font: 500 12px "Segoe UI", sans-serif; cursor: pointer; padding: 2px 4px; }
+  .bands { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; }
+  .band { display: grid; justify-items: center; gap: 4px; }
+  .band output { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; height: 14px; }
+  .band .v { height: 118px; width: 22px; position: relative; }
+  .band .v input { position: absolute; width: 118px; left: -48px; top: 48px; transform: rotate(-90deg); }
+  .band label { font-size: 10px; color: var(--faint); }
+
+  /* devices */
+  .dev { display: flex; align-items: center; gap: 12px; padding: 10px; margin: 0 -6px; border-radius: 12px; cursor: pointer; transition: background .15s; }
+  .dev:hover { background: var(--card-hi); }
+  .dev .ico { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--bg2); color: var(--muted); flex: none; border: 1px solid var(--line); }
+  .dev .ico svg { width: 18px; height: 18px; }
+  .dev.connected .ico { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+  .dev .txt { flex: 1; min-width: 0; }
+  .dev .txt div { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dev .txt p { font-size: 11.5px; color: var(--muted); }
+  .dev.connected .txt p { color: var(--ok); }
+  .btn { border: 1px solid var(--line); background: var(--card-hi); color: var(--fg); font: 500 12px "Segoe UI", sans-serif; padding: 7px 12px; border-radius: 10px; cursor: pointer; transition: .15s; white-space: nowrap; }
+  .btn:hover { border-color: var(--faint); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn:disabled { opacity: .45; cursor: default; filter: none; }
+  .btn.busy { pointer-events: none; opacity: .7; }
+  .empty { color: var(--muted); font-size: 12px; padding: 6px 0; }
+
+  /* find */
+  .find { display: flex; align-items: center; gap: 14px; }
+  .radar { width: 52px; height: 52px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); position: relative; }
+  .radar svg { width: 24px; height: 24px; }
+  .radar::before, .radar::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; }
+  .finding .radar::before { animation: ping 1.6s infinite; } .finding .radar::after { animation: ping 1.6s .8s infinite; }
+  @keyframes ping { from { transform: scale(1); opacity: .6; } to { transform: scale(1.8); opacity: 0; } }
+  .find .txt { flex: 1; }
+  .find .txt div { font-weight: 500; }
+  .find .txt p { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  /* header as drag handle */
+  header { cursor: grab; }
+  header .icon-btn { cursor: pointer; }
+  .appicon { width: 34px; height: 34px; border-radius: 10px; flex: none; }
+
+  /* compact widget */
+  #mini { display: none; }
+  @media (max-width: 350px) {
+    body { overflow: hidden; background: transparent; box-shadow: none; }
+    #app, .toast, dialog { display: none !important; }
+    #mini {
+      position: relative; display: flex; align-items: center; gap: 10px; height: 100vh; padding: 0 10px;
+      border-radius: 18px; cursor: pointer; overflow: hidden;
+      border: 1px solid transparent;
+      background:
+        linear-gradient(160deg, var(--card-hi) 0%, var(--card) 100%) padding-box,
+        linear-gradient(var(--ring), var(--ring)) border-box;
+      transition: filter .2s, transform .2s;
+    }
+    #mini::after {                                    /* glassy top highlight */
+      content: ""; position: absolute; inset: 0 0 55% 0; border-radius: 18px 18px 40% 40% / 18px 18px 30px 30px;
+      background: linear-gradient(rgba(255,255,255,.05), transparent); pointer-events: none;
+    }
+    #mini:hover { filter: brightness(1.04); }
+    #mini:active { transform: scale(.99); }
+  }
+  .mini-icon { box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  .mini-icon { width: 40px; height: 40px; border-radius: 12px; flex: none; pointer-events: none; }
+  .mini-main { flex: 1; min-width: 0; display: grid; gap: 3px; pointer-events: none; }
+  .mini-top { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .mini-top b { font: 600 13.5px "Segoe UI Variable Display", "Segoe UI", sans-serif; }
+  .mini-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); flex: none; }
+  .mini-dot.on { background: var(--ok); }
+  .mini-dot.warn { background: var(--warn); }
+  .mini-status { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mini-bats { display: flex; gap: 7px; white-space: nowrap; overflow: hidden; margin-top: 3px; }
+  .mb { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+  .mb i { font-style: normal; font-weight: 600; color: var(--faint); font-size: 10.5px; display: inline-flex; }
+  .mb i svg { width: 14px; height: 14px; }
+  .mb em { width: 22px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: inline-block; }
+  .mb em s { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 3px; transition: width .4s; }
+  .mb b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .mb.chg b::after { content: "⚡"; font-size: 9px; margin-left: 1px; }
+
+  footer { text-align: center; color: var(--faint); font-size: 11px; padding-top: 2px; }
+
+  /* overlay states */
+  .disabled-ui .needs-conn { opacity: .45; pointer-events: none; filter: saturate(.4); transition: .2s; }
+  .banner { display: none; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--warn) 12%, var(--card)); border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); font-size: 12px; }
+  .banner svg { width: 18px; height: 18px; color: var(--warn); flex: none; margin-top: 1px; }
+  .disabled-ui .banner { display: flex; }
+  .banner .grow { flex: 1; }
+  .banner.info { background: var(--card); border-color: var(--line); }
+  .banner.info svg { color: var(--muted); }
+  .group-label { font-size: 11px; color: var(--faint); margin: 10px 0 2px; font-weight: 600; letter-spacing: .02em; }
+  .group-label:first-child { margin-top: 0; }
+  .dev.other { cursor: default; }
+  .dev.other:hover { background: none; }
+  .dev.other .txt div { color: var(--muted); }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; background: #222832; color: #fff; padding: 10px 14px; border-radius: 12px; font-size: 12px; max-width: calc(100% - 32px); box-shadow: 0 10px 30px rgba(0,0,0,.35); transition: .25s; z-index: 10; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  dialog { border: 1px solid var(--line); border-radius: 18px; background: var(--card); color: var(--fg); padding: 20px; width: min(320px, calc(100% - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+  dialog::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px); }
+  dialog h3 { font: 600 15px "Segoe UI", sans-serif; margin-bottom: 8px; }
+  dialog p { color: var(--muted); font-size: 12.5px; margin-bottom: 16px; }
+  dialog .acts { display: flex; justify-content: flex-end; gap: 8px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-bud" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M9.5 4.5a4.5 4.5 0 0 1 4.5 4.5v1.5a3 3 0 0 1-3 3h-.5V19a1.5 1.5 0 0 1-3 0V12.2A4.5 4.5 0 0 1 9.5 4.5Z"/><circle cx="10" cy="9" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-case" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="11" rx="5.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.8 11.5h16.4" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="14.6" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path fill="currentColor" d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+    <symbol id="i-anc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M8 12h1.5l1.2-3 2.6 6 1.2-3H16"/></g></symbol>
+    <symbol id="i-trans" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M8 8v8M16 8v8M4 10.5v3M20 10.5v3"/></g></symbol>
+    <symbol id="i-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></g></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M15 4.5 19.5 9l-3 1.5-3.5 3.5.5 4-1.5 1.5-3.5-3.5L4.5 20 4 19.5l4-4L4.5 12 6 10.5l4 .5L13.5 7.5 15 4.5Z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4.5h-4.5"/></g></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10.5 18.5h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="i-laptop" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4.5" y="5" width="15" height="10.5" rx="1.5"/><path d="M2.5 18.5h19" stroke-linecap="round"/></g></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></g></symbol>
+    <symbol id="i-collapse" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5-5 5 5"/></g></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></g></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.5 20h19L12 3.5Z"/><path d="M12 10v4.5M12 17.2v.1"/></g></symbol>
+  </defs>
+</svg>
+
+<div id="mini" title="Click to open · drag to move">
+  <img class="mini-icon" src="/icon.png" alt="">
+  <div class="mini-main">
+    <div class="mini-top"><b>Nord Buds 4</b><span class="mini-dot" id="miniDot"></span></div>
+    <div class="mini-status" id="miniStatus">Connecting…</div>
+    <div class="mini-bats">
+      <span class="mb" data-k="left"><i>L</i><b>--</b></span>
+      <span class="mb" data-k="right"><i>R</i><b>--</b></span>
+      <span class="mb" data-k="case"><i><svg><use href="#i-case"/></svg></i><b>--</b></span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap disabled-ui" id="app">
+  <header id="dragbar">
+    <img class="appicon" src="/icon.png" alt="">
+    <div class="brand">
+      <h1>OnePlus Nord Buds 4</h1>
+      <div class="pill busy" id="pill"><i class="dot"></i><span id="pillText">Connecting…</span></div>
+    </div>
+    <button class="icon-btn" id="refresh" title="Refresh"><svg><use href="#i-refresh"/></svg></button>
+    <button class="icon-btn" id="collapse" title="Collapse"><svg><use href="#i-collapse"/></svg></button>
+    <button class="icon-btn" id="closeBtn" title="Close widget"><svg><use href="#i-close"/></svg></button>
+  </header>
+
+  <div class="banner" id="banner"><svg><use href="#i-warn"/></svg><div class="grow"><div id="bannerText">Connecting to your earbuds…</div><button class="btn primary" id="pcConnect" style="display:none;margin-top:10px">Connect to this PC</button></div></div>
+
+  <section class="card hero needs-conn" id="battery">
+    <div class="bat" data-k="left"><div class="ring"><svg viewBox="0 0 80 80"><circle class="track" cx="40" cy="40" r="34" fill="none" stroke-width="6"/><circle class="val" cx="40" cy="40" r="34" fill="none" stroke-width="6" stroke-dasharray="213.6" stroke-dashoffset="213.6"/></svg><div class="glyph"><svg style="transform:scaleX(-1)"><use href="#i-bud"/></svg></div></div><b>--</b><span><svg class="bolt"><use href="#i-bolt"/></svg>Left</span></div>
+    <div class="bat" data-k="case"><div class="ring"><svg viewBox="0 0 80 80"><circle class="track" cx="40" cy="40" r="34" fill="none" stroke-width="6"/><circle class="val" cx="40" cy="40" r="34" fill="none" stroke-width="6" stroke-dasharray="213.6" stroke-dashoffset="213.6"/></svg><div class="glyph"><svg><use href="#i-case"/></svg></div></div><b>--</b><span><svg class="bolt"><use href="#i-bolt"/></svg>Case</span></div>
+    <div class="bat" data-k="right"><div class="ring"><svg viewBox="0 0 80 80"><circle class="track" cx="40" cy="40" r="34" fill="none" stroke-width="6"/><circle class="val" cx="40" cy="40" r="34" fill="none" stroke-width="6" stroke-dasharray="213.6" stroke-dashoffset="213.6"/></svg><div class="glyph"><svg><use href="#i-bud"/></svg></div></div><b>--</b><span><svg class="bolt"><use href="#i-bolt"/></svg>Right</span></div>
+  </section>
+
+  <section class="card needs-conn">
+    <h2>Noise control</h2>
+    <div class="seg" id="modes">
+      <div class="thumb" id="thumb"></div>
+      <button data-m="anc"><svg><use href="#i-anc"/></svg>Noise cancelling</button>
+      <button data-m="transparency"><svg><use href="#i-trans"/></svg>Transparency</button>
+      <button data-m="off"><svg><use href="#i-off"/></svg>Off</button>
+    </div>
+    <div class="mode-note" id="modeNote"></div>
+  </section>
+
+  <section class="card needs-conn">
+    <h2>Audio effects</h2>
+    <div class="chips" id="presets">
+      <button class="chip" data-id="0">Balanced</button>
+      <button class="chip" data-id="1">Serenade</button>
+      <button class="chip" data-id="2">Bass</button>
+      <button class="chip" data-id="custom" disabled>Custom</button>
+    </div>
+    <div class="eq" id="eq">
+      <div class="eq-head"><b id="eqName">Custom EQ</b><button class="link" id="eqReset">Reset</button></div>
+      <div class="bands" id="bands"></div>
+    </div>
+    <div class="bass">
+      <div class="row" style="padding-top:4px">
+        <div class="txt"><div>BassWave</div><p>Dynamic bass enhancement</p></div>
+        <label class="switch"><input type="checkbox" data-f="dynamic_bass"><i></i></label>
+      </div>
+      <div id="bassBox">
+        <div class="bass-head"><b>Bass level</b><span id="bassVal">--</span></div>
+        <input type="range" id="bass" min="-5" max="5" step="1" value="0">
+        <div class="scale"><span>Less</span><span>More</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card needs-conn">
+    <h2><span class="grow">Devices</span><span class="sub" id="devCount"></span></h2>
+    <div id="devices"><div class="empty">Loading devices…</div></div>
+  </section>
+
+  <section class="card needs-conn" id="findCard">
+    <h2>Find my earbuds</h2>
+    <div class="find">
+      <div class="radar"><svg><use href="#i-sound"/></svg></div>
+      <div class="txt"><div id="findTitle">Play a sound</div><p id="findSub">The earbuds beep loudly so you can locate them.</p></div>
+      <button class="btn primary" id="findBtn">Play</button>
+    </div>
+  </section>
+
+  <section class="card needs-conn">
+    <h2>Settings</h2>
+    <div class="row"><div class="txt"><div>Game mode</div><p>Low-latency audio for games and video</p></div><label class="switch"><input type="checkbox" data-f="game_mode"><i></i></label></div>
+    <div class="row"><div class="txt"><div>In-ear detection</div><p>Pause when you take an earbud out</p></div><label class="switch"><input type="checkbox" data-f="in_ear"><i></i></label></div>
+    <div class="row"><div class="txt"><div>Dual connection</div><p>Stay connected to two devices at once</p></div><label class="switch"><input type="checkbox" data-f="dual_connection"><i></i></label></div>
+  </section>
+
+  <footer id="footer">Nord Buds Widget</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<dialog id="findDlg">
+  <h3>Take the earbuds out of your ears</h3>
+  <p>Find my earbuds plays a loud sound through both earbuds. It stops after 30 seconds, or when you press Stop.</p>
+  <div class="acts"><button class="btn" value="cancel" id="findCancel">Cancel</button><button class="btn primary" id="findGo">Play sound</button></div>
+</dialog>
+
+<dialog id="pcDlg">
+  <h3>Disconnect from this PC?</h3>
+  <p>The earbuds stop playing this PC's audio and become free for your phone or another device. You can connect them back from this widget at any time.</p>
+  <div class="acts"><button class="btn" id="pcCancel">Cancel</button><button class="btn primary" id="pcGo">Disconnect</button></div>
+</dialog>
+
+<script>
+const TOKEN = "__TOKEN__";
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+let S = null, hold = {}, lastToast = 0, eqTimer = null, bassTimer = null, lowSeen = {};
+const isLow = v => !!(v && v.level <= 20 && !v.charging);
+const connErr = e => /no-answer/.test(e) ? "The earbuds are connected to this PC but are not answering. Put both earbuds in the case, close the lid for 10 seconds, then take them out. The widget keeps trying; press Refresh to try now." :
+  /10048/.test(e) ? "Another program is using the earbuds' control channel. Close it, then press Refresh." :
+  /1006[045]/.test(e) ? "The earbuds did not answer. Take them out of the case and keep them near this PC." :
+  `Couldn't open the earbuds' control channel (${e}). Trying again…`;
+
+const held = k => hold[k] && hold[k] > Date.now();
+const keep = (k, ms = 1800) => hold[k] = Date.now() + ms;
+
+async function api(path, body) {
+  const r = await fetch(path, { method: body ? "POST" : "GET", keepalive: true,
+    headers: { "X-Token": TOKEN, ...(body ? { "Content-Type": "application/json" } : {}) },
+    body: body ? JSON.stringify(body) : undefined });
+  return r.json();
+}
+async function act(a) {
+  try { const r = await api("/api/action", a); if (!r.ok) toast(r.error || "Something went wrong"); return r; }
+  catch { toast("Lost contact with the widget service"); }
+}
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3800);
+}
+
+/* ---------- rendering ---------- */
+function renderStatus(s) {
+  const pill = $("#pill"), app = $("#app");
+  const offPc = !s.connected && s.pc_connected === false && !s.pc_busy;
+  const btOff = !s.connected && s.bt_on === false && !s.pc_busy;
+  const unpaired = !s.connected && !!s.error && /paired/.test(s.error);
+  pill.className = "pill " + (s.connected ? "on" : offPc || btOff || unpaired ? "" : "busy");
+  $("#pillText").textContent = s.pc_busy === "disconnect" ? "Disconnecting from this PC…" :
+    s.pc_busy === "connect" ? "Connecting to this PC…" : s.connected ? "Connected to this PC" :
+    btOff ? "Bluetooth is off on this PC" : unpaired ? "Not paired with this PC" :
+    offPc ? "Not connected to this PC" : s.error ? (/no-answer/.test(s.error) ? "Earbuds are not answering" : "Can't reach the earbuds") :
+    s.searching ? "Looking for earbuds…" : "Connecting…";
+  app.classList.toggle("disabled-ui", !s.connected);
+  $("#banner").classList.toggle("info", offPc && !btOff);
+  $("#pcConnect").style.display = offPc && !btOff ? "" : "none";
+  $("#bannerText").textContent = s.connected ? "" :
+    s.pc_busy === "disconnect" ? "Disconnecting this PC so your other devices can use the earbuds…" :
+    s.pc_busy === "connect" ? "Connecting the earbuds to this PC…" :
+    btOff ? "Bluetooth is turned off on this PC. Turn it on in Windows Settings > Bluetooth & devices. The widget reconnects by itself." :
+    unpaired ? "Your Nord Buds 4 aren't paired with this PC. Pair them in Windows Settings > Bluetooth & devices." :
+    offPc && s.release_until ? `This PC is disconnected so your phone or another device can use the earbuds. Connect from that device's Bluetooth settings now. The earbuds are kept off this PC for ${Math.max(0, Math.round(s.release_until - Date.now() / 1000))} s more.` :
+    offPc ? "The earbuds are not connected to this PC. They are in the closed case, asleep, or in use by another device. Open the case or take them out, then connect them back." :
+    s.error ? connErr(s.error) :
+    "Connecting to the earbuds… If this takes long, take them out of the case.";
+  const fw = (s.firmware || "").split(","), fwNames = { 1: "L", 2: "R", 3: "Case" }, parts = [];
+  for (let i = 0; i + 2 < fw.length; i += 3) parts.push(`${fwNames[fw[i].trim()] || fw[i].trim()} ${fw[i + 2].trim()}`);
+  $("#footer").textContent = parts.length ? `Firmware · ${parts.join(" · ")}` : "Nord Buds Widget";
+}
+
+function renderBattery(s) {
+  $$(".bat").forEach(el => {
+    const v = s.battery[el.dataset.k], b = el.querySelector("b"), ring = el.querySelector(".val");
+    el.classList.toggle("na", !v); el.classList.toggle("chg", !!(v && v.charging));
+    if (!v) { b.textContent = "--"; ring.style.strokeDashoffset = 213.6; return; }
+    b.innerHTML = `${v.level}<small>%</small>`;
+    ring.style.strokeDashoffset = 213.6 * (1 - v.level / 100);
+    ring.style.stroke = v.level > 30 ? "var(--ok)" : v.level > 15 ? "var(--warn)" : "var(--low)";
+    el.title = v.stale ? "Last known level (case closed)" : "";
+  });
+}
+
+const MODE_NOTES = { anc: "Blocks out background noise.", transparency: "Lets you hear what's around you.", off: "Noise cancelling and transparency are off." };
+function renderMode(m) {
+  const order = ["anc", "transparency", "off"], i = order.indexOf(m), th = $("#thumb");
+  th.style.opacity = i < 0 ? 0 : 1; if (i >= 0) th.style.transform = `translateX(${i * 100}%)`;
+  $$("#modes button").forEach(b => b.classList.toggle("on", b.dataset.m === m));
+  $("#modeNote").textContent = MODE_NOTES[m] || "";
+}
+
+function fmtHz(f) { return f >= 1000 ? (f / 1000) + "k" : String(f); }
+function setFill(r) { r.style.setProperty("--p", ((r.value - r.min) / (r.max - r.min) * 100) + "%"); }
+
+function buildBands(ce) {
+  const box = $("#bands");
+  if (box.dataset.sig === ce.freqs.join()) return;
+  box.dataset.sig = ce.freqs.join(); box.innerHTML = "";
+  ce.freqs.forEach((f, i) => {
+    const d = document.createElement("div"); d.className = "band";
+    d.innerHTML = `<output>0</output><div class="v"><input type="range" min="${ce.min}" max="${ce.max}" step="1" value="0" data-i="${i}"></div><label>${fmtHz(f)}</label>`;
+    box.appendChild(d);
+  });
+  box.querySelectorAll("input").forEach(r => r.addEventListener("input", () => {
+    r.closest(".band").querySelector("output").textContent = (r.value > 0 ? "+" : "") + r.value; setFill(r);
+    keep("custom", 2500); clearTimeout(eqTimer); eqTimer = setTimeout(sendEq, 350);
+  }));
+}
+function sendEq() {
+  const dbs = $$("#bands input").map(r => +r.value);
+  keep("custom", 2500); keep("eq"); act({ type: "custom_eq", dbs });
+}
+
+function renderEq(s) {
+  const ce = s.custom_eq, cChip = $('#presets [data-id="custom"]');
+  cChip.disabled = !ce; if (ce) cChip.textContent = ce.name.replace(/\d+$/, "") || "Custom";
+  if (!held("eq")) $$("#presets .chip").forEach(c => {
+    const id = c.dataset.id === "custom" ? ce && ce.id : +c.dataset.id;
+    c.classList.toggle("on", s.eq !== null && s.eq === id);
+  });
+  const customOn = ce && $('#presets [data-id="custom"]').classList.contains("on");
+  $("#eq").classList.toggle("show", !!customOn);
+  if (ce) {
+    buildBands(ce);
+    $("#eqName").textContent = `${ce.name} · ${ce.min} to +${ce.max} dB`;
+    if (!held("custom")) $$("#bands input").forEach((r, i) => {
+      r.value = ce.dbs[i] ?? 0; setFill(r);
+      r.closest(".band").querySelector("output").textContent = (r.value > 0 ? "+" : "") + r.value;
+    });
+  }
+  const bass = $("#bass");
+  if (s.bass && !held("bass")) {
+    bass.min = s.bass.min; bass.max = s.bass.max; bass.value = s.bass.level; setFill(bass);
+    $("#bassVal").textContent = (s.bass.level > 0 ? "+" : "") + s.bass.level;
+  }
+  $("#bassBox").style.opacity = s.features.dynamic_bass === false ? .45 : 1;
+}
+
+function guessIcon(name) { return /phone|pixel|galaxy|s\d\d|oneplus|nord|redmi|poco|android|mobile|vivo|oppo|realme|moto/i.test(name) && !/desktop|laptop|pc\b|book/i.test(name) ? "i-phone" : /desktop|laptop|pc|book|w11|win|mac/i.test(name) ? "i-laptop" : "i-phone"; }
+function esc(t) { return t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function renderDevices(s) {
+  if (held("devices")) return;
+  const box = $("#devices"), list = s.devices || [];
+  if (!s.connected) {
+    $("#devCount").textContent = ""; box.dataset.sig = "";
+    box.innerHTML = `<div class="empty">The device list appears when the earbuds are connected to this PC.</div>`; return;
+  }
+  const n = list.filter(d => d.connected).length;
+  $("#devCount").textContent = list.length ? `${n} of ${list.length} connected` : "";
+  if (!list.length) { box.innerHTML = `<div class="empty">No devices reported yet.</div>`; return; }
+  const sig = JSON.stringify(list);
+  if (box.dataset.sig === sig) return; box.dataset.sig = sig;
+  const row = d => {
+    const status = d.current ? "Connected · this PC" : d.connected ? (d.audio ? "Connected · playing audio" : "Connected") : "Paired · not connected";
+    const btn = d.current ? `<button class="btn" data-op="pc-disconnect" title="Disconnect the earbuds from this PC so another device can use them">Disconnect</button>` : "";
+    return `<div class="dev ${d.connected ? "connected" : "other"}">
+      <div class="ico"><svg><use href="#${d.current ? "i-laptop" : guessIcon(d.name)}"/></svg></div>
+      <div class="txt"><div>${esc(d.name)}</div><p>${status}</p></div>${btn}</div>`;
+  };
+  const on = list.filter(d => d.connected), off = list.filter(d => !d.connected);
+  box.innerHTML =
+    `<div class="group-label">CONNECTED NOW</div>` + (on.map(row).join("") || `<div class="empty">None</div>`) +
+    (off.length ? `<div class="group-label">OTHER PAIRED DEVICES</div>` + off.map(row).join("") : "") +
+    `<div class="hint">Your earbuds stay connected to up to 2 devices. To use a device under "Other paired devices", disconnect one above, then connect from that device's Bluetooth settings.</div>`;
+}
+
+function renderFeatures(s) {
+  $$("input[data-f]").forEach(i => { if (!held("f_" + i.dataset.f) && s.features[i.dataset.f] !== undefined) i.checked = s.features[i.dataset.f]; });
+}
+function renderFind(s) {
+  if (held("find")) return;
+  const card = $("#findCard"), on = !!s.finding;
+  card.classList.toggle("finding", on);
+  $("#findBtn").textContent = on ? "Stop" : "Play"; $("#findBtn").classList.toggle("primary", !on);
+  $("#findTitle").textContent = on ? "Playing sound…" : "Play a sound";
+  $("#findSub").textContent = on ? "Follow the beeping. It stops automatically after 30 s." : "The earbuds beep loudly so you can locate them.";
+}
+
+function lowBattery(s) {
+  const names = { left: "Left earbud", right: "Right earbud", case: "Case" };
+  for (const k in names) {
+    const v = s.connected && s.battery[k], low = isLow(v);
+    if (low && !lowSeen[k]) toast(`${names[k]} battery is low (${v.level}%)`);
+    lowSeen[k] = low;
+  }
+}
+
+function render(s) {
+  S = s; renderStatus(s); renderBattery(s); renderMini(s); lowBattery(s);
+  applyCorners();
+  if (!held("mode")) renderMode(s.mode);
+  renderEq(s); renderDevices(s); renderFeatures(s); renderFind(s);
+  if (s.toast && s.toast_id !== lastToast) { if (lastToast) toast(s.toast); lastToast = s.toast_id; }
+  else if (!lastToast) lastToast = s.toast_id || -1;
+}
+
+async function poll() {
+  try { render(await api("/api/state")); } catch { $("#pillText").textContent = "Widget service stopped"; }
+  setTimeout(poll, document.hidden ? 3000 : 700);
+}
+
+/* ---------- interactions ---------- */
+$$("#modes button").forEach(b => b.onclick = () => { keep("mode"); renderMode(b.dataset.m); act({ type: "mode", mode: b.dataset.m }); });
+
+$$("#presets .chip").forEach(c => c.onclick = () => {
+  const id = c.dataset.id === "custom" ? S.custom_eq.id : +c.dataset.id;
+  keep("eq"); $$("#presets .chip").forEach(x => x.classList.toggle("on", x === c));
+  $("#eq").classList.toggle("show", c.dataset.id === "custom");
+  act({ type: "eq", id });
+});
+$("#eqReset").onclick = () => { $$("#bands input").forEach(r => { r.value = 0; r.dispatchEvent(new Event("input")); }); };
+
+$("#bass").addEventListener("input", e => {
+  const r = e.target; setFill(r); $("#bassVal").textContent = (r.value > 0 ? "+" : "") + r.value;
+  keep("bass", 2500); clearTimeout(bassTimer); bassTimer = setTimeout(() => act({ type: "bass", level: +r.value }), 300);
+});
+
+$$("input[data-f]").forEach(i => i.onchange = () => { keep("f_" + i.dataset.f, 2500); act({ type: "feature", name: i.dataset.f, on: i.checked }); });
+
+$("#devices").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-op='pc-disconnect']"); if (!btn) return;
+  $("#pcDlg").showModal();
+});
+$("#pcCancel").onclick = () => $("#pcDlg").close();
+$("#pcGo").onclick = () => { $("#pcDlg").close(); act({ type: "pc", op: "disconnect" }); };
+$("#pcConnect").onclick = () => act({ type: "pc", op: "connect" });
+
+$("#findBtn").onclick = () => {
+  if (S && S.finding) { keep("find", 1200); S.finding = false; renderFind({ finding: false }); act({ type: "find", on: false }); return; }
+  $("#findDlg").showModal();
+};
+$("#findCancel").onclick = () => $("#findDlg").close();
+$("#findGo").onclick = () => { $("#findDlg").close(); keep("find", 1200); renderFind({ finding: true }); act({ type: "find", on: true }); };
+
+$("#refresh").onclick = () => { const b = $("#refresh"); b.classList.remove("spin"); void b.offsetWidth; b.classList.add("spin"); act({ type: "refresh" }); };
+/* ---------- smooth corners: blend into the wallpaper while sitting on the desktop ---------- */
+function applyCorners() {
+  const root = document.documentElement.style, cols = S && S.corner_colors;
+  ["tl", "tr", "bl", "br"].forEach((k, i) => {
+    if (cols && innerWidth <= 350) root.setProperty(`--c-${k}`, cols[i]);   // compact: on the wallpaper
+    else root.removeProperty(`--c-${k}`);                                   // expanded: over apps
+  });
+}
+addEventListener("resize", applyCorners);
+
+/* ---------- desktop widget: compact view, expand, drag ---------- */
+const win = op => api("/api/win", { op }).catch(() => {});
+function renderMini(s) {
+  const low = s.connected && (isLow(s.battery.left) || isLow(s.battery.right));
+  const st = s.pc_busy ? (s.pc_busy === "connect" ? "Connecting…" : "Disconnecting…") :
+    s.connected ? (low ? "Battery low" : s.mode === "anc" ? "Noise cancelling" : s.mode === "transparency" ? "Transparency" : s.mode === "off" ? "Noise control off" : "Connected") :
+    s.bt_on === false ? "Bluetooth is off" :
+    s.error && /paired/.test(s.error) ? "Not paired" :
+    s.release_until ? `Released · ${Math.max(0, Math.round(s.release_until - Date.now() / 1000))} s` :
+    s.pc_connected === false ? "Not connected" : s.error ? (/no-answer/.test(s.error) ? "Not answering" : "Can't reach earbuds") :
+    s.searching ? "Searching…" : "Connecting…";
+  $("#miniStatus").textContent = st;
+  $("#miniDot").classList.toggle("on", !!s.connected && !low);
+  $("#miniDot").classList.toggle("warn", !!low);
+  $$(".mb").forEach(el => {
+    const v = s.battery[el.dataset.k], b = el.querySelector("b"), bar = el.querySelector("s");
+    el.classList.toggle("chg", !!(v && v.charging));
+    el.style.display = !v && el.dataset.k === "case" ? "none" : "";
+    b.textContent = v ? v.level + "%" : "--";
+    b.style.color = !v || v.level > 30 ? "" : v.level > 15 ? "var(--warn)" : "var(--low)";
+    if (bar) { bar.style.width = v ? v.level + "%" : "0"; bar.style.background = !v ? "" : v.level > 30 ? "var(--ok)" : v.level > 15 ? "var(--warn)" : "var(--low)"; }
+  });
+}
+function dragOrClick(el, onClick) {
+  el.addEventListener("mousedown", e => {
+    if (e.button !== 0 || e.target.closest("button")) return;
+    const x0 = e.screenX, y0 = e.screenY; let dragging = false;
+    const move = ev => {
+      if (!dragging && Math.hypot(ev.screenX - x0, ev.screenY - y0) > 4) { dragging = true; cleanup(); win("drag"); }
+    };
+    const up = () => { cleanup(); if (!dragging && onClick) onClick(); };
+    const cleanup = () => { removeEventListener("mousemove", move); removeEventListener("mouseup", up); };
+    addEventListener("mousemove", move); addEventListener("mouseup", up);
+  });
+}
+const sendMetrics = () => api("/api/win", { op: "metrics", outer: outerHeight, inner: innerHeight, dpr: devicePixelRatio }).catch(() => {});
+addEventListener("resize", () => { clearTimeout(sendMetrics._t); sendMetrics._t = setTimeout(sendMetrics, 120); });
+sendMetrics();
+dragOrClick($("#mini"), () => win("full"));
+dragOrClick($("#dragbar"), null);
+$("#collapse").onclick = () => win("compact");
+$("#closeBtn").onclick = () => { if (confirm("Close the Nord Buds widget? It starts again the next time you sign in, or from the desktop shortcut.")) win("close"); };
+addEventListener("keydown", e => { if (e.key === "Escape" && !document.querySelector("dialog[open]")) win("compact"); });
+addEventListener("keydown", e => { if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) { e.preventDefault(); act({ type: "refresh" }); } });
+addEventListener("contextmenu", e => e.preventDefault());
+setFill($("#bass"));
+poll();
+</script>
+</body>
+</html>
