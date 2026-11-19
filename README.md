@@ -9,6 +9,13 @@
   earbud settings from your PC, without the HeyMelody phone app.
 </p>
 
+<p align="center">
+  <img src="docs/widget-expanded.png" width="340" alt="Expanded widget: battery, noise control and audio effects">
+  &nbsp;&nbsp;
+  <img src="docs/widget-compact.png" width="226" alt="Compact desktop card">
+</p>
+<p align="center"><sub>Expanded view (left) and the compact card that sits on the desktop (right)</sub></p>
+
 ---
 
 ## Features
